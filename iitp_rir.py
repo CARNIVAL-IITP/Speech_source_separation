@@ -41,9 +41,9 @@ def room_simulate(num_mic,mic_array,room_type):
     num_direction = 12
     mic_radius = 0.04 #0.03231 testing
     #mic_radius =  np.random.uniform(low=0.025,high=0.035)
-    mic_x_radius = 0.0637  # ?�??
+    mic_x_radius = 0.0637  
     mic_y_radius = 0.0484
-    mic_lin = 0.04  # ?�형
+    mic_lin = 0.04  
     
     room = pra.ShoeBox(room,
                       fs = sr,
