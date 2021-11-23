@@ -56,14 +56,15 @@ def room_simulate(num_mic,mic_array,room_type):
     if mic_array == 'circle':
         center_to_mic = np.stack([np.cos(thetas), np.sin(thetas), np.zeros_like(thetas)], 0) * mic_radius
     elif mic_array == 'ellipse':
-        center_to_mic = np.stack([mic_x_radius*np.cos(thetas), mic_y_radius*np.sin(thetas), np.zeros_like(thetas)], 0) #?�?�형
+        center_to_mic = np.stack([mic_x_radius*np.cos(thetas), mic_y_radius*np.sin(thetas), np.zeros_like(thetas)], 0) 
     elif mic_array =='linear':
         linear = np.arange(num_mic)*mic_lin
         linear = linear - np.max(linear)/2
-        center_to_mic = np.stack([linear,np.zeros_like(linear),np.zeros_like(linear)],0) #?�형
+        center_to_mic = np.stack([linear,np.zeros_like(linear),np.zeros_like(linear)],0) 
     mic_positions = mic_center[:, None] + center_to_mic
     room.add_microphone_array(mic_positions)
-    far_field_distance = 1 #?�원 source ?�치?�에 ?�???�정: ?�기???�성 ?�일 ?�어준 ???�래 block???�행?�켜주면 채널??맞게 ?��??�이??가??    thetas = np.arange(num_direction) / num_direction * 2 * np.pi
+    far_field_distance = 1 
+    thetas = np.arange(num_direction) / num_direction * 2 * np.pi
     center_to_source = np.stack([np.cos(theta_source), np.sin(theta_source), np.zeros_like(theta_source)], -1) * far_field_distance
     source_positions = mic_center[None, :] + center_to_source
 
