@@ -1,0 +1,6 @@
+# @package dset
+train: egs/wsj0_2mix/tr
+valid: egs/wsj0_2mix/cv
+test: egs/wsj0_2mix/tt
+mix_json: egs/wsj0_2mix/tt
+mix_dir: /home/bjwoo/PycharmProjects/data/wham_wav/wav8k/min/tt/mix_clean/
