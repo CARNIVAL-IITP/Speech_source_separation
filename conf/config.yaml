@@ -1,9 +1,12 @@
 defaults:
-  - dset: AEC_echo_gen
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
-
+# Mic config
+n_mics: 4
+mic_radius: 0.0283
 # Dataset related
+train_dir: "/home/bjwoo/PycharmProjects/data/cos_generate_sitec/4mic/train"
+test_dir: "/home/bjwoo/PycharmProjects/data/cos_generate_sitec/4mic/test"
 sample_rate: 16000
 segment: 4
 stride: 1    # in seconds, how much to stride between training examples
@@ -14,37 +17,32 @@ validfull: 1   # use entire samples at valid
 # Logging and printing, and does not impact training
 num_prints: 5
 device: cuda
-num_workers: 4
+num_workers: 8
 verbose: 0
 show: 0   # just show the model and its size and exit
 
 # Checkpointing, by default automatically load last checkpoint
 checkpoint: True
-continue_from: ''  #'sep_echogen_echocat_0.9near_far_inter_sisnr' #'baseline_echogen_echocat_0.99near_inter' #'exp_baseline_AEC_dataset' # Only pass the name of the exp, like `exp_dset=wham`
+continue_from: ''   # Only pass the name of the exp, like `exp_dset=wham`
                   # this arg is ignored for the naming of the exp!
 continue_best: True
 restart: False # Ignore existing checkpoints
 checkpoint_file: checkpoint.th
 history_file: history.json
 samples_dir: samples
-finetune: True
+speaker_model_checkpoint: "model_1200.model"
 
 # Other stuff
 seed: 1024
 dummy:  # use this if you want twice the same exp, with a name
 
 # Evaluation stuff
-pesq: True # compute pesq?
-eval_every: 10
 keep_last: 0
 
 # Optimization related
 optim: adam
 lr: 5e-4
 beta2: 0.999
-stft_loss: True
-stft_sc_factor: .5
-stft_mag_factor: .5
 epochs: 200
 batch_size: 4
 max_norm: 5
@@ -58,14 +56,18 @@ plateau:
   patience: 3
 
 # Models
-model: echo_gen # either demucs or dwave
-swave:
-  N: 128
-  L: 8
-  H: 128
-  R: 3
-  C: 2
-  input_normalize: False
+model: version_1 # version_2
+cos:
+  n_audio_channels: 4
+  window_conditioning_size: 5
+  kernel_size: 7
+  stride: 4
+  context: 3
+  depth: 6
+  channels: 64
+  growth: 2.0
+  lstm_layers: 2
+  rescale: 0.1
 
 # Experiment launching, distributed
 ddp: True
@@ -79,7 +81,7 @@ world_size:
 # Hydra config
 hydra:
   run:
-    dir: ./outputs/sep_echogen_echocat_0.9near_far2_inter_si_snr_modified #${hydra.job.override_dirname}
+    dir: ./outputs/to_be_removed #${hydra.job.override_dirname}
   job:
     config:
       # configuration for the ${hydra.job.override_dirname} runtime variable
@@ -102,7 +104,7 @@ hydra:
         class: logging.FileHandler
         mode: w
         formatter: colorlog
-        filename: trainer.log
+        filename: trainer.log #evaluation.log
       console:
         class: logging.StreamHandler
         formatter: colorlog
