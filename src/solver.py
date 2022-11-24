@@ -13,11 +13,13 @@ from .models.version_1 import center_trim,normalize_input,unnormalize_input
 logger = logging.getLogger(__name__)
 
 class Solver(object):
-    def __init__(self, data, model, optimizer, args):
+    def __init__(self, data, model,speaker_model, optimizer, args):
         self.tr_loader = data['tr_loader']
         self.cv_loader = data['cv_loader']
         self.model = model
         self.dmodel = distrib.wrap(model)
+        self.speaker_model = speaker_model
+        self.dspeaker_model = distrib.wrap(speaker_model)
         self.optimizer = optimizer
         if args.lr_sched == 'step':
             self.sched = StepLR(
@@ -154,7 +156,14 @@ class Solver(object):
             delta = valid_length - data.shape[-1]
             padded = F.pad(data, (delta // 2, delta - delta // 2))
 
-            output_signal = self.model(padded, window_idx)
+            if self.args.model == "version_1":
+                output_signal = self.model(padded, window_idx)
+            elif self.args.model == "version_2":
+                spk_embedding = self.speaker_model(ref_spk)
+                output_signal = self.model(padded, window_idx,spk_embedding)
+            else:
+                assert 0
+                
             output_signal = center_trim(output_signal, data)
 
             output_signal = unnormalize_input(output_signal, means, stds)
