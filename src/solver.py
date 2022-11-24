@@ -6,8 +6,6 @@ import time
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 import torch.nn.functional as F
 from . import distrib
-from src.models.version_1 import CoSNetwork,center_trim,normalize_input,unnormalize_input
-# from .evaluate import evaluate
 from .utils import bold, copy_state, pull_metric, serialize_model, swap_state, LogProgress
 from .models.version_1 import center_trim,normalize_input,unnormalize_input
 logger = logging.getLogger(__name__)
