@@ -192,8 +192,8 @@ class CoSNetwork_spk(nn.Module):
             x = encode["activation"](x + embedding2)
             saved.append(x)
 
-        # Bi-directional LSTM at the bottleneck layer
-        x = x.permute(2, 0, 1)  # prep input for LSTM
+        # Conformer Encoder
+        x = x.permute(2, 0, 1)  # prep input for Conformer
         x = self.conformer(x)
         x = x.permute(1, 2, 0)
         film_vector = self.film_generator(spk_embedding)
