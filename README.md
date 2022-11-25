@@ -43,3 +43,9 @@ you can change settings at conf/conf.yaml
 Evaluation
 -------------
 To be added
+
+Reference code:
+-------------
+* Cone of Silence: https://github.com/vivjay30/Cone-of-Silence
+* ECAPA-TDNN : https://github.com/TaoRuijie/ECAPA-TDNN 
+* Conformer: https://github.com/jaketae/conformer 
