@@ -30,7 +30,9 @@ Preprocessing
 Training
 -------------
 To train the model run this command:
+
     python main.py
+    
 you can change settings at conf/conf.yaml
 
 Evaluation
