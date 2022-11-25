@@ -42,6 +42,4 @@ you can change settings at conf/conf.yaml
 
 Evaluation
 -------------
-
-Results
--------------
+To be added
