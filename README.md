@@ -23,6 +23,17 @@ To do
 
 Requirements
 -------------
+python3
+torch==1.6.0
+torchaudio==0.6.0
+hydra-core==1.0.3
+hydra-colorlog==1.0.0
+omegaconf==2.1.1
+librosa==0.7.1
+soundifle==0.10.3
+pystoi==0.3.3
+pesq==0.0.2
+numpy==1.19.4
 
 Preprocessing
 -------------
@@ -38,7 +49,8 @@ To train the model run this command:
 
     python main.py
     
-you can change settings at conf/conf.yaml
+1차년도 세팅은 conf/conf.yaml 의 model에서 version_1
+2차년도 세팅은 conf/conf.yaml 의 model에서 version_2(speaker_model_checkpoint 경로도 수정)
 
 Evaluation
 -------------
