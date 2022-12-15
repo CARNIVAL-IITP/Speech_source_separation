@@ -2,9 +2,6 @@ import itertools
 import math
 
 import numpy as np
-
-from mir_eval.separation import bss_eval_sources
-
 from cos.helpers.utils import angular_distance
 
 def si_sdr(estimated_signal, reference_signals, scaling=True):
@@ -44,7 +41,6 @@ def compute_sdr(gt, output, single_channel=False):
 
     channels = [0] if single_channel else range(gt.shape[0])
     for channel_idx in channels:
-        # sdr, _, _, _ = bss_eval_sources(gt[channel_idx], output[channel_idx])
         sdr = si_sdr(output[channel_idx], gt[channel_idx])
         per_channel_sdr.append(sdr)
 
