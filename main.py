@@ -20,10 +20,15 @@ def run(args):
         kwargs['segment'] = args.segment
         model = CoSNetwork(**kwargs)
     elif args.model == 'version_2':
-        kwargs = dict(args.mos)
-        kwargs['sr'] = args.sample_rate
-        kwargs['segment'] = args.segment
+        kwargs = dict(args.cos)
         model = CoSNetwork_spk(**kwargs)
+        from src.speaker_model.speaker_network import ECAPA_TDNN
+        speaker_model = ECAPA_TDNN(C=64)
+        self_state = speaker_model.state_dict()
+        loaded_state = torch.load(args.speaker_model_checkpoint)
+        for name, param in loaded_state.items():
+            if name.split(".")[0] == "speaker_encoder":
+                self_state[name.split("speaker_encoder.")[-1]].copy_(param)
     else:
         logger.fatal("Invalid model name %s", args.model)
         os._exit(1)
@@ -47,7 +52,7 @@ def run(args):
     cv_loader = distrib.loader(
         cv_dataset, batch_size=1, shuffle=False, num_workers=args.num_workers)
     data = {"tr_loader": tr_loader,"cv_loader": cv_loader}
-    solver = Solver(data, model, optimizer, args)
+    solver = Solver(data, model, speaker_model, optimizer, args)
     solver.train()
 @hydra.main(config_path="conf", config_name='config.yaml')
 def main(args):
