@@ -16,8 +16,9 @@ class Solver(object):
         self.cv_loader = data['cv_loader']
         self.model = model
         self.dmodel = distrib.wrap(model)
-        self.speaker_model = speaker_model
-        self.dspeaker_model = distrib.wrap(speaker_model)
+        if speaker_model is not None:
+            self.speaker_model = speaker_model
+            self.dspeaker_model = distrib.wrap(speaker_model)
         self.optimizer = optimizer
         if args.lr_sched == 'step':
             self.sched = StepLR(
