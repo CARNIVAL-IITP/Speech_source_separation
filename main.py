@@ -14,6 +14,8 @@ def run(args):
     from src.models.version_2 import CoSNetwork_spk
     from src.solver import Solver
     from src.data.dataloader import SyntheticDataset
+    
+    speaker_model = None
     if args.model == 'version_1':
         kwargs = dict(args.mos)
         kwargs['sr'] = args.sample_rate
