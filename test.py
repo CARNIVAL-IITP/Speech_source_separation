@@ -4,7 +4,7 @@ import hydra
 import torch
 from src.executor import start_ddp_workers
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 logger = logging.getLogger(__name__)
 
@@ -41,43 +41,21 @@ def run(args):
     else:
         logger.fatal("Invalid model name %s", args.model)
         os._exit(1)
-    torch.manual_seed(args.seed)
-    if torch.cuda.is_available():
-        model.cuda()
-    if args.optim=='adam':
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, args.beta2))
-    elif args.optim=='adamw':
-        optimizer = torch.optim.AdamW(model.parameters(),lr=args.lr, betas=(args.beta1, args.beta2),weight_decay=args.weight_decay)
-    else:
-        logger.fatal('Invalid optimizer %s', args.optim)
-        os._exit(1)
-
     if args.model == 'version_3':
-        from src.data.multi_channel_dataloader import Trainset,Validset
+        from src.data.multi_channel_dataloader import Validset
         mic_prefix = str(args.n_mics) + "mic"
-        tr_dataset = Trainset(os.path.join(args.json_dir,"train",mic_prefix), sample_rate=args.sample_rate, segment=args.segment, stride=args.stride, pad=args.pad)
-        tr_loader = distrib.loader(
-            tr_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-
-        cv_dataset = Validset(os.path.join(args.json_dir,"valid",mic_prefix))
-        cv_loader = distrib.loader(
-            cv_dataset, batch_size=1, shuffle=False, num_workers=args.num_workers)
+        tt_dataset = Validset(os.path.join(args.json_dir,"test",mic_prefix))
+        tt_loader = distrib.loader(
+            tt_dataset, batch_size=1, shuffle=False, num_workers=args.num_workers)
     else:
         from src.data.dataloader import SyntheticDataset
-        tr_dataset = SyntheticDataset(args.train_dir, n_mics=args.n_mics,
-                                      sr=args.sample_rate, perturb_prob=1.0,
-                                      mic_radius=args.mic_radius)
-        tr_loader = distrib.loader(
-            tr_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-
-        cv_dataset = SyntheticDataset(args.test_dir, n_mics=args.n_mics,
+        tt_dataset = SyntheticDataset(args.test_dir, n_mics=args.n_mics,
                                      sr=args.sample_rate, mic_radius=args.mic_radius)
-        cv_loader = distrib.loader(
-            cv_dataset, batch_size=1, shuffle=False, num_workers=args.num_workers)
+        tt_loader = distrib.loader(
+            tt_dataset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
-    data = {"tr_loader": tr_loader,"cv_loader": cv_loader}
-    solver = Solver(data, model, speaker_model, optimizer, args)
-    solver.train()
+
+
 @hydra.main(config_path="conf/", config_name='config.yaml')
 def main(args):
     global __file__

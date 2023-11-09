@@ -1,15 +1,18 @@
 defaults:
+  - dset: sitec
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
 # Mic config
-n_mics: 4
+n_mics: 8
 mic_radius: 0.0283
 # Dataset related
+json_dir: "/home/bjwoo/PycharmProjects/IITP_SS/egs/sitec_multi_channel"
 train_dir: "/home/bjwoo/PycharmProjects/data/cos_generate_sitec/4mic/train"
+valid_dir: "/home/bjwoo/PycharmProjects/data/cos_generate_sitec/4mic/valid"
 test_dir: "/home/bjwoo/PycharmProjects/data/cos_generate_sitec/4mic/test"
 sample_rate: 16000
 segment: 4
-stride: 1    # in seconds, how much to stride between training examples
+stride: 2    # in seconds, how much to stride between training examples
 pad: true   # if training sample is too short, pad it
 cv_maxlen: 8
 validfull: 1   # use entire samples at valid
@@ -40,24 +43,26 @@ dummy:  # use this if you want twice the same exp, with a name
 keep_last: 0
 
 # Optimization related
-optim: adam
-lr: 5e-4
+optim: adamw
+lr: 1e-3
+beta1: 0.9
 beta2: 0.999
-epochs: 200
+weight_decay: 0.5
+epochs: 20
 batch_size: 4
 max_norm: 5
 # learning rate scheduling
 lr_sched: plateau # can be either step or plateau
 step: 
-  step_size: 5
+  step_size: 2
   gamma: 0.9
 plateau:
   factor: 0.9
   patience: 3
 
 # Models
-model: version_1 # version_2
-cos:
+model: version_3 # version_2
+version_1:
   n_audio_channels: 4
   window_conditioning_size: 5
   kernel_size: 7
@@ -68,6 +73,25 @@ cos:
   growth: 2.0
   lstm_layers: 2
   rescale: 0.1
+
+version_2:
+  n_audio_channels: 4
+  window_conditioning_size: 5
+  kernel_size: 7
+  stride: 4
+  context: 3
+  depth: 6
+  channels: 64
+  growth: 2.0
+  lstm_layers: 2
+  rescale: 0.1
+
+version_3:
+  n_speaker: 2
+  n_fft: 512
+  n_overlap: 256
+  ref_channel: 0
+
 
 # Experiment launching, distributed
 ddp: True
@@ -81,7 +105,7 @@ world_size:
 # Hydra config
 hydra:
   run:
-    dir: ./outputs/to_be_removed #${hydra.job.override_dirname}
+    dir: ./outputs/IITP_third_8mic #${hydra.job.override_dirname}
   job:
     config:
       # configuration for the ${hydra.job.override_dirname} runtime variable
@@ -94,7 +118,7 @@ hydra:
         # This is ugly I know...
         exclude_keys: [
           'hydra.job_logging.handles.file.filename',
-          'dset.train', 'dset.valid', 'dset.test', 'dset.mix_json', 'dset.mix_dir',
+          'dset.train', 'dset.valid', 'dset.test',
           'num_prints', 'continue_from',
           'device', 'num_workers', 'print_freq', 'restart', 'verbose',
           'log', 'ddp', 'ddp_backend', 'rendezvous_file', 'rank', 'world_size']

@@ -93,12 +93,14 @@ class Solver(object):
         for epoch, metrics in enumerate(self.history):
             info = " ".join(f"{k}={v:.5f}" for k, v in metrics.items())
             logger.info(f"Epoch {epoch}: {info}")
-
         for epoch in range(len(self.history),self.epochs):
             self.model.train()
             logger.info("Training...")
             start = time.time()
-            train_loss = self._run_one_epoch(epoch)
+            if self.args.model in ['version_1', 'version_2']:
+                train_loss = self._run_one_epoch_version_1_2(epoch)
+            else:
+                train_loss = self._run_one_epoch_version_3_4(epoch)
             logger.info(bold(f'Train Summary | End of Epoch {epoch + 1} | '
                              f'Time {time.time() - start:.2f}s | Train Loss {train_loss:.5f}'))
 
@@ -107,7 +109,10 @@ class Solver(object):
             logger.info('Cross validation...')
             self.model.eval()
             with torch.no_grad():
-                valid_loss = self._run_one_epoch(epoch,cross_valid= True)
+                if self.args.model in ['version_1', 'version_2']:
+                    valid_loss = self._run_one_epoch_version_1_2(epoch, cross_valid=True)
+                else:
+                    valid_loss = self._run_one_epoch_version_3_4(epoch, cross_valid=True)
             logger.info(bold(f'Valid Summary | End of Epoch {epoch + 1} | '
                              f'Time {time.time() - start:.2f}s | Valid Loss {valid_loss:.5f}'))
             if self.sched:
@@ -136,7 +141,7 @@ class Solver(object):
                     logger.debug("Checkpoint saved to %s",
                                  self.checkpoint.resolve())
 
-    def _run_one_epoch(self, epoch, cross_valid=False):
+    def _run_one_epoch_version_1_2(self, epoch, cross_valid=False):
         total_loss = 0
         data_loader = self.tr_loader if not cross_valid else self.cv_loader
 
@@ -148,7 +153,7 @@ class Solver(object):
         logprog = LogProgress(logger, data_loader,
                               updates=self.num_prints, name=name)
         for i, data in enumerate(logprog):
-            data,label_voice_signals,window_idx,_= [x.to(self.device) for x in data]
+            data,label_voice_signals,window_idx,ref_spk= [x.to(self.device) for x in data]
 
             data, means, stds = normalize_input(data)
             valid_length = self.model.valid_length(data.shape[-1])
@@ -189,4 +194,37 @@ class Solver(object):
 
             # Just in case, clear some memory
             del loss, estimate_source
+        return distrib.average([total_loss / (i + 1)], i + 1)[0]
+    def _run_one_epoch_version_3_4(self, epoch, cross_valid=False):
+        total_loss = 0
+        data_loader = self.tr_loader if not cross_valid else self.cv_loader
+
+        # get a different order for distributed training, otherwise this will get ignored
+        data_loader.epoch = epoch
+
+        label = ["Train", "Valid"][cross_valid]
+        name = label + f" | Epoch {epoch + 1}"
+        logprog = LogProgress(logger, data_loader,
+                              updates=self.num_prints, name=name)
+        from .models.version_3.arch.loss import cal_loss
+        for i, data in enumerate(logprog):
+            mixture, lengths, sources = [x.to(self.device) for x in data]
+            estimate_source = self.dmodel(mixture)
+            sisdr_loss = self.dmodel.loss(estimate_source,sources)
+                    # SI-SNR loss
+            # sisdr_loss, snr, est_src, reorder_est_src = cal_loss(
+            #     sources, estimate_source, lengths)
+            if not cross_valid:
+                # optimize model in training mode
+                self.optimizer.zero_grad()
+                sisdr_loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(),
+                                               self.max_norm)
+                self.optimizer.step()
+
+            total_loss += sisdr_loss.item()
+            logprog.update(loss=format(total_loss / (i + 1), ".5f"))
+
+            # Just in case, clear some memory
+            del sisdr_loss, estimate_source
         return distrib.average([total_loss / (i + 1)], i + 1)[0]
