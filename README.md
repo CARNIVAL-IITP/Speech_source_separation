@@ -37,11 +37,21 @@ numpy==1.19.4
 
 Preprocessing
 -------------
+Version1 & Version2 Dataset:
+
 To generate the dataset run this command:
 
     python preprocess/generate_sitec_dataset.py ./SiTEC_DB_path ./output_path
     
 you can change settings at preprocess/generate_sitec_dataset.py using argparse
+
+Version3 & Version4 Dataset:
+
+To generate the dataset run this command:
+
+    python preprocess/iitp_rir.py
+
+you can change settings in the main() of iitp_rir.py
 
 Training
 -------------
