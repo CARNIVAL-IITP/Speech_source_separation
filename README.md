@@ -16,11 +16,14 @@ Done
 * Feature wise linear modulation을 통한 speaker embedding 본 네트워크에 conditioning
 * Bottleneck Layer를 Conformer encoder 사용
 * SI-SNR loss 추가
-* Low delay speeech separation 알고리즘 추가 
+* Low delay speeech separation 알고리즘 추가
 
 To do
 
 * Streaming speech separation
+* Speaker Loss 추가(코드정리)
+* 3~4명의 입력에도 분리할 수 있도록 기능 추가
+  
 Requirements
 -------------
 python==3.7.10     
