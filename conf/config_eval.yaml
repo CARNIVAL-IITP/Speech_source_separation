@@ -1,0 +1,156 @@
+defaults:
+  - dset: sitec
+  - hydra/job_logging: colorlog
+  - hydra/hydra_logging: colorlog
+# Mic config
+n_mics: 8
+mic_radius: 0.0283
+best_file: "best.th"
+# Dataset related
+json_dir: "/home/bjwoo/PycharmProjects/Speech_source_separation/egs/wsj-2mix" # "/home/bjwoo/PycharmProjects/IITP_SS/egs/sitec_multi_channel"
+train_dir: "/home/bjwoo/PycharmProjects/data/cos_generate_sitec/4mic/train"
+valid_dir: "/home/bjwoo/PycharmProjects/data/cos_generate_sitec/4mic/valid"
+test_dir: "/home/bjwoo/PycharmProjects/data/cos_generate_sitec/4mic/test"
+sitec_path_dir: "/home/bjwoo/PycharmProjects/data/sitec"
+sample_rate: 16000
+segment: 4
+stride: 2    # in seconds, how much to stride between training examples
+pad: true   # if training sample is too short, pad it
+cv_maxlen: 8
+validfull: 1   # use entire samples at valid
+
+# Logging and printing, and does not impact training
+num_prints: 5
+device: cuda
+num_workers: 8
+verbose: 0
+show: 0   # just show the model and its size and exit
+
+# Checkpointing, by default automatically load last checkpoint
+checkpoint: True
+continue_from: ''   # Only pass the name of the exp, like `exp_dset=wham`
+                  # this arg is ignored for the naming of the exp!
+continue_best: True
+restart: False # Ignore existing checkpoints
+checkpoint_file: checkpoint.th
+history_file: history.json
+samples_dir: samples
+speaker_model_checkpoint: "model_1200.model"
+
+# Other stuff
+seed: 1024
+dummy:  # use this if you want twice the same exp, with a name
+
+# Evaluation stuff
+keep_last: 0
+
+# Optimization related
+optim: adamw
+lr: 1e-3
+beta1: 0.9
+beta2: 0.999
+weight_decay: 0.01
+epochs: 100
+batch_size: 8
+max_norm: 5
+# learning rate scheduling
+lr_sched: plateau # can be either step or plateau
+step:
+  step_size: 2
+  gamma: 0.9
+plateau:
+  factor: 0.8
+  patience: 3
+
+# Models
+model: skim # version_2
+version_1:
+  n_audio_channels: 4
+  window_conditioning_size: 5
+  kernel_size: 7
+  stride: 4
+  context: 3
+  depth: 6
+  channels: 64
+  growth: 2.0
+  lstm_layers: 2
+  rescale: 0.1
+
+version_2:
+  n_audio_channels: 4
+  window_conditioning_size: 5
+  kernel_size: 7
+  stride: 4
+  context: 3
+  depth: 6
+  channels: 64
+  growth: 2.0
+  lstm_layers: 2
+  rescale: 0.1
+
+version_3:
+  n_speaker: 2
+  n_fft: 512
+  n_overlap: 256
+  ref_channel: 0
+
+skim:
+  input_dim: 256
+  kernel_size: 16
+  causal: True
+  num_spk: 2
+  predict_noise: False
+  nonlinear: "relu"
+  layer: 4
+  unit: 384
+  segment_size: 50
+  dropout: 0.0
+  mem_type: "hc"
+  seg_overlap: False
+# Experiment launching, distributed
+ddp: True
+ddp_backend: nccl
+rendezvous_file: ./rendezvous
+
+# Internal config, don't set manually
+rank:
+world_size:
+
+# Hydra config
+hydra:
+  run:
+    dir: ./outputs/skim_only #${hydra.job.override_dirname}
+  job:
+    config:
+      # configuration for the ${hydra.job.override_dirname} runtime variable
+      override_dirname:
+        kv_sep: '='
+        item_sep: ','
+        # Remove all paths, as the / in them would mess up things
+        # Remove params that would not impact the training itself
+        # Remove all slurm and submit params.
+        # This is ugly I know...
+        exclude_keys: [
+          'hydra.job_logging.handles.file.filename',
+          'dset.train', 'dset.valid', 'dset.test',
+          'num_prints', 'continue_from',
+          'device', 'num_workers', 'print_freq', 'restart', 'verbose',
+          'log', 'ddp', 'ddp_backend', 'rendezvous_file', 'rank', 'world_size']
+  job_logging:
+    handlers:
+      file:
+        class: logging.FileHandler
+        mode: w
+        formatter: colorlog
+        filename: eval.log #evaluation.log
+      console:
+        class: logging.StreamHandler
+        formatter: colorlog
+        stream: ext://sys.stderr
+
+  hydra_logging:
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: colorlog
+        stream: ext://sys.stderr

@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch import Tensor
 from torchmetrics.functional.audio import permutation_invariant_training as pit
 from torchmetrics.functional.audio import scale_invariant_signal_distortion_ratio as si_sdr
-
+from .xLSTM.xlstm_vision import ViLBlock
 
 def neg_si_sdr(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     batch_size = target.shape[0]
@@ -25,7 +25,8 @@ class MCSS_V3(nn.Module):
             arch_kwargs: Dict[str, Any] = dict(),
     ):
         super().__init__()
-        self.separation_model: nn.Module = BLSTM2_FC1(input_size=n_channel * 2, output_size=n_speaker * 2, **arch_kwargs)
+        # self.separation_model: nn.Module = BLSTM2_FC1(input_size=n_channel * 2, output_size=n_speaker * 2, **arch_kwargs)
+        self.separation_model: nn.Module = XLSTM2_FC1(input_size=n_channel * 2, output_size=n_speaker * 2, **arch_kwargs)
 
 
         self.register_buffer('window', torch.hann_window(n_fft), False)  # self.window, will be moved to self.device at training time
@@ -154,6 +155,7 @@ class BLSTM2_FC1(nn.Module):
         Returns:
             Tensor: shape [batch, seq, output_size]
         """
+
         x, _ = self.blstm1(x)
         if self.dropout:
             x = self.dropout1(x)
@@ -168,25 +170,6 @@ class BLSTM2_FC1(nn.Module):
             y = self.linear(x)
 
         return y
-    def forward_stream(self,input_frame: Tensor,states=None):
-        B, _, N = input_frame.shape
-
-        def empty_seg_states():
-            shp = (1, B, self.hidden_size)
-            return (
-                torch.zeros(*shp, device=input_frame.device, dtype=input_frame.dtype),
-                torch.zeros(*shp, device=input_frame.device, dtype=input_frame.dtype),
-            )
-
-        B, _, N = input_frame.shape
-        if not states:
-            states = {
-                "current_step": 0,
-                "seg_state": [empty_seg_states() for i in range(self.num_blocks)],
-                "mem_state": [[None, None] for i in range(self.num_blocks - 1)],
-            }
-
-        output = input_frame
 class GlobalLayerNorm(nn.Module):
     """Global Layer Normalization (gLN)."""
 
@@ -221,3 +204,73 @@ class GlobalLayerNorm(nn.Module):
         if self.shape == "BTD":
             gLN_y = gLN_y.transpose(1, 2).contiguous()
         return gLN_y
+
+
+class XLSTM2_FC1(nn.Module):
+
+    def __init__(
+            self,
+            input_size: int,
+            output_size: int,
+            activation: Optional[str] = "",
+            hidden_size: Tuple[int, int] = (256, 128),
+            n_repeat_last_lstm: int = 1,
+            dropout: Optional[float] = None,
+    ):
+        """Two layers of BiLSTMs & one fully connected layer
+
+        Args:
+            input_size: the input size for the features of the first BiLSTM layer
+            output_size: the output size for the features of the last BiLSTM layer
+            hidden_size: the hidden size of each BiLSTM layer. Defaults to (256, 128).
+        """
+
+        super().__init__()
+
+        self.input_size = input_size
+        self.output_size = output_size
+        self.hidden_size = hidden_size
+        self.activation = activation
+        self.dropout = dropout
+        self.norm1 = GlobalLayerNorm(self.hidden_size[0], shape="BTD")
+        self.norm2 = GlobalLayerNorm(self.hidden_size[1], shape="BTD")
+
+        # self.xlstm1 = CustomxLSTM(self.input_size, self.hidden_size[0], batch_first=True, num_layers=1)
+        self.xlstm1 = ViLBlock(self.input_size)
+        # self.xlstm2 = CustomxLSTM(self.hidden_size[0], self.hidden_size[1], batch_first=True, num_layers=1)
+        self.xlstm2 = ViLBlock(self.input_size)
+        if dropout is not None:
+            self.dropout1 = nn.Dropout(p=dropout)
+            self.dropout2 = nn.Dropout(p=dropout)
+
+        # self.linear = nn.Linear(self.hidden_size[1], self.output_size)  # type:ignore
+        self.linear = nn.Linear(self.input_size, self.output_size)  # type:ignore
+        if self.activation is not None and len(self.activation) > 0:  # type:ignore
+            self.activation_func = getattr(nn, self.activation)()  # type:ignore
+        else:
+            self.activation_func = None
+
+    def forward(self, x: Tensor) -> Tensor:
+        """forward
+
+        Args:
+            x: shape [batch, seq, input_size]
+
+        Returns:
+            Tensor: shape [batch, seq, output_size]
+        """
+
+        x = self.xlstm1(x)
+        if self.dropout:
+            x = self.dropout1(x)
+        # x = x + self.norm1(x)
+        x = self.xlstm2(x)
+        if self.dropout:
+            x = self.dropout2(x)
+        # x = x + self.norm2(x)
+        if self.activation_func is not None:
+            y = self.activation_func(self.linear(x))
+        else:
+            y = self.linear(x)
+
+        return y

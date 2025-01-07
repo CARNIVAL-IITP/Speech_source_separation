@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/IITP_SS.iml" filepath="$PROJECT_DIR$/.idea/IITP_SS.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Speech_source_separation.iml" filepath="$PROJECT_DIR$/.idea/Speech_source_separation.iml" />
     </modules>
   </component>
 </project>

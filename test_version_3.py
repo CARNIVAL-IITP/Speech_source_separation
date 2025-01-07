@@ -2,7 +2,8 @@ import logging
 import os
 import hydra
 import torch
-from src.models.version_3.arch.loss import cal_loss
+from src.models.version_3_folder.arch.loss import cal_loss
+from concurrent.futures import ProcessPoolExecutor
 from src.executor import start_ddp_workers
 from src.utils import  *
 import sys
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def run(args):
     from src import distrib
-    from src.models.version_3.arch.NBSS import NBSS
+    from src.models.version_3_folder.arch.NBSS import NBSS
     from src.solver import Solver
 
     if args.model != "version_3":
@@ -29,7 +30,7 @@ def run(args):
     tt_dataset = Validset(os.path.join(args.json_dir, "test", mic_prefix))
     tt_loader = distrib.loader(
         tt_dataset, batch_size=1, shuffle=False, num_workers=args.num_workers)
-
+    evaluate(args,model,tt_loader)
 
 def evaluate(args, model=None, data_loader=None, sr=None):
 
@@ -54,25 +55,26 @@ def evaluate(args, model=None, data_loader=None, sr=None):
     model.to(args.device)
     # Load data
     pendings = []
-    with torch.no_grad():
-        iterator = LogProgress(logger, data_loader, name="Eval estimates")
-        for i, data in enumerate(iterator):
-            # Get batch data
-            mixture, lengths, sources = [x.to(args.device) for x in data]
-            # Forward
-            with torch.no_grad():
-                mixture /= mixture.max()
-                estimate = model(mixture)[-1]
-            sisnr_loss, snr, estimate, reorder_estimate = cal_loss(
-                sources, estimate, lengths)
-            reorder_estimate = reorder_estimate.cpu()
-            sources = sources.cpu()
-            mixture = mixture.cpu()
+    with ProcessPoolExecutor(args.num_workers) as pool:
+        with torch.no_grad():
+            iterator = LogProgress(logger, data_loader, name="Eval estimates")
+            for i, data in enumerate(iterator):
+                # Get batch data
+                mixture, lengths, sources = [x.to(args.device) for x in data]
+                # Forward
+                with torch.no_grad():
+                    mixture /= mixture.max()
+                    estimate = model(mixture)[-1]
+                sisnr_loss, snr, estimate, reorder_estimate = cal_loss(
+                    sources, estimate, lengths)
 
-            # pendings.append(
-            #     pool.submit(_run_metrics, sources, reorder_estimate, mixture, None,
-            #                 sr=sr))
-            total_cnt += sources.shape[0]
+                reorder_estimate = reorder_estimate.cpu()
+                sources = sources.cpu()
+                mixture = mixture.cpu()
+                pendings.append(
+                    pool.submit(_run_metrics, sources, reorder_estimate, mixture, None,
+                                sr=sr))
+                total_cnt += sources.shape[0]
 
     metrics = [total_sisnr]
     sisnr, pesq, stoi = distrib.average(
@@ -129,7 +131,7 @@ def cal_SISDRi(src_ref, src_est, mix):
     avg_SISDRi /= C
     return avg_SISDRi
 
-@hydra.main(config_path="conf/", config_name='config.yaml')
+@hydra.main(config_path="conf/", config_name='config_eval.yaml')
 def main(args):
     global __file__
     # Updating paths in config

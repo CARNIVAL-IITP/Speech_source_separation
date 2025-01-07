@@ -18,6 +18,7 @@ class Solver(object):
         self.dmodel = distrib.wrap(model)
         if speaker_model is not None:
             self.speaker_model = speaker_model
+
             self.dspeaker_model = distrib.wrap(speaker_model)
         self.optimizer = optimizer
         if args.lr_sched == 'step':

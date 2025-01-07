@@ -5,7 +5,7 @@ import torch
 
 from pathlib import Path
 
-from cos.helpers.constants import SPEED_OF_SOUND
+from .constants import SPEED_OF_SOUND
 
 
 def shift_mixture(input_data, target_position, mic_radius, sr, inverse=False):

@@ -35,7 +35,7 @@ class Trainset:
             with open(s_json, 'r') as f:
                 s_infos.append(json.load(f))
 
-        length = int(sample_rate * segment)
+        length = int(sample_rate  * segment)
         stride = int(sample_rate * stride)
 
         kw = {'length': length, 'stride': stride, 'pad': pad}

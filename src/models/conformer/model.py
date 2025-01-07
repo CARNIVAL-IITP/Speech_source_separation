@@ -31,7 +31,6 @@ class ConformerBlock(nn.Module):
         x = self.norm(x)
         return x
 
-
 class ConformerEncoder(nn.TransformerEncoder):
     def __init__(
         self,

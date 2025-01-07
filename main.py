@@ -4,7 +4,7 @@ import hydra
 import torch
 from src.executor import start_ddp_workers
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 logger = logging.getLogger(__name__)
 
@@ -12,8 +12,9 @@ def run(args):
     from src import distrib
     from src.models.version_1 import CoSNetwork
     from src.models.version_2 import CoSNetwork_spk
-    from src.models.version_3.arch.NBSS import NBSS
-    from src.solver import Solver
+    from src.models.version_3 import MCSS_V3
+    # from src.models.version_3_folder.arch.NBSS import NBSS
+    from src.solver_skim import Solver
 
 
     speaker_model = None
@@ -37,7 +38,11 @@ def run(args):
     elif args.model == 'version_3':
         kwargs = dict(args.version_3)
         kwargs['n_channel'] = args.n_mics
-        model = NBSS(**kwargs)
+        model = MCSS_V3(**kwargs)
+    elif args.model == 'skim':
+        from src.models.SKIM.model import SKIM
+        kwargs = dict(args.skim)
+        model = SKIM(**kwargs)
     else:
         logger.fatal("Invalid model name %s", args.model)
         os._exit(1)
@@ -62,6 +67,14 @@ def run(args):
         cv_dataset = Validset(os.path.join(args.json_dir,"valid",mic_prefix))
         cv_loader = distrib.loader(
             cv_dataset, batch_size=1, shuffle=False, num_workers=args.num_workers)
+    elif args.model == 'skim':
+        from src.data.skim_dataloader import Train_dataset,Valid_dataset
+        tr_dataset = Train_dataset(args.json_dir,args.sitec_path_dir,segment=args.segment,pad=args.pad)
+        tr_loader = distrib.loader(
+            tr_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+        cv_dataset = Valid_dataset(args.json_dir, segment=args.segment, pad=args.pad)
+        cv_loader = distrib.loader(
+            cv_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     else:
         from src.data.dataloader import SyntheticDataset
         tr_dataset = SyntheticDataset(args.train_dir, n_mics=args.n_mics,

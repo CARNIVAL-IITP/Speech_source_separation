@@ -3,13 +3,14 @@ defaults:
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
 # Mic config
-n_mics: 8
+n_mics: 4
 mic_radius: 0.0283
 # Dataset related
-json_dir: "/home/bjwoo/PycharmProjects/IITP_SS/egs/sitec_multi_channel"
+json_dir: "/home/bjwoo/PycharmProjects/IITP_SS/egs/sitec_multi_channel" # "/home/bjwoo/PycharmProjects/IITP_SS/egs/sitec_multi_channel" "/home/bjwoo/PycharmProjects/Speech_source_separation/egs/wsj-2mix"
 train_dir: "/home/bjwoo/PycharmProjects/data/cos_generate_sitec/4mic/train"
 valid_dir: "/home/bjwoo/PycharmProjects/data/cos_generate_sitec/4mic/valid"
 test_dir: "/home/bjwoo/PycharmProjects/data/cos_generate_sitec/4mic/test"
+sitec_path_dir: "/home/bjwoo/PycharmProjects/data/sitec"
 sample_rate: 16000
 segment: 4
 stride: 2    # in seconds, how much to stride between training examples
@@ -44,11 +45,11 @@ keep_last: 0
 
 # Optimization related
 optim: adamw
-lr: 1e-3
+lr: 1.5e-4
 beta1: 0.9
 beta2: 0.999
-weight_decay: 0.5
-epochs: 20
+weight_decay: 0
+epochs: 300
 batch_size: 4
 max_norm: 5
 # learning rate scheduling
@@ -57,7 +58,7 @@ step:
   step_size: 2
   gamma: 0.9
 plateau:
-  factor: 0.9
+  factor: 0.8
   patience: 3
 
 # Models
@@ -92,7 +93,19 @@ version_3:
   n_overlap: 256
   ref_channel: 0
 
-
+skim:
+  input_dim: 256
+  kernel_size: 16
+  causal: True
+  num_spk: 2
+  predict_noise: False
+  nonlinear: "gelu"
+  layer: 4
+  unit: 384
+  segment_size: 20
+  dropout: 0.0
+  mem_type: "hc"
+  seg_overlap: False
 # Experiment launching, distributed
 ddp: True
 ddp_backend: nccl
@@ -105,7 +118,7 @@ world_size:
 # Hydra config
 hydra:
   run:
-    dir: ./outputs/IITP_third_8mic #${hydra.job.override_dirname}
+    dir: ./outputs/xlstm_baseline #${hydra.job.override_dirname}
   job:
     config:
       # configuration for the ${hydra.job.override_dirname} runtime variable

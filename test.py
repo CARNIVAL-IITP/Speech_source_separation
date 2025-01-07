@@ -12,7 +12,7 @@ def run(args):
     from src import distrib
     from src.models.version_1 import CoSNetwork
     from src.models.version_2 import CoSNetwork_spk
-    from src.models.version_3.arch.NBSS import NBSS
+    from src.models.version_3_dir.arch.NBSS import NBSS
     from src.solver import Solver
 
 
@@ -34,14 +34,18 @@ def run(args):
         for name, param in loaded_state.items():
             if name.split(".")[0] == "speaker_encoder":
                 self_state[name.split("speaker_encoder.")[-1]].copy_(param)
-    elif args.model == 'version_3':
+    elif args.model == 'version_3_folder':
         kwargs = dict(args.version_3)
         kwargs['n_channel'] = args.n_mics
         model = NBSS(**kwargs)
+    elif args.model == 'skim':
+        from src.models.SKIM.SkiMSeparator import SkiM_Model
+        kwargs = dict(args.skim)
+        model = SkiM_Model(**kwargs)
     else:
         logger.fatal("Invalid model name %s", args.model)
         os._exit(1)
-    if args.model == 'version_3':
+    if args.model == 'version_3_folder':
         from src.data.multi_channel_dataloader import Validset
         mic_prefix = str(args.n_mics) + "mic"
         tt_dataset = Validset(os.path.join(args.json_dir,"test",mic_prefix))
@@ -56,7 +60,7 @@ def run(args):
 
 
 
-@hydra.main(config_path="conf/", config_name='config.yaml')
+@hydra.main(config_path="conf/", config_name='config_eval.yaml')
 def main(args):
     global __file__
     # Updating paths in config
