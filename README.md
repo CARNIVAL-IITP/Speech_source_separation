@@ -77,5 +77,6 @@ Reference code:
 * Conformer: https://github.com/jaketae/conformer 
 
 License: 
-This code is licensed under the GNU General Public License version 3. The license can be found under LICENSE: https://olis.or.kr/license/Detailselect.do?lId=1072&mapCode=010072
+This code is licensed under the GNU General Public License version 3. The license can be found under LICENSE: https://olis.or.kr/license/Detailselect.do?lId=1072&mapCode=010072 .
+
 This code uses a modified version of code above reference codes, and is licensed under the MIT license.
